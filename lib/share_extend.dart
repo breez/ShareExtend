@@ -18,7 +18,7 @@ class ShareExtend {
   /// on iOS.
   /// type  "text", "image" ,"file"
   ///
-  static Future<void> share(String text, String type,
+  static Future<bool> share(String text, String type,
       {Rect sharePositionOrigin}) {
     assert(text != null);
     assert(text.isNotEmpty);

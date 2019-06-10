@@ -31,15 +31,13 @@
             }
         
             if ([shareType isEqualToString:@"text"]) {
-                [self share:shareText atSource:originRect];
-                result(nil);
+                [self share:shareText atSource:originRect withResult:result];
             }  else if ([shareType isEqualToString:@"image"]) {
                 UIImage *image = [UIImage imageWithContentsOfFile:shareText];
-                [self share:image atSource:originRect];
+                [self share:image atSource:originRect withResult:result];
             } else {
                 NSURL *url = [NSURL fileURLWithPath:shareText];
-                [self share:url atSource:originRect];
-                result(nil);
+                [self share:url atSource:originRect withResult:result];
             }
         } else {
             result(FlutterMethodNotImplemented);
@@ -47,7 +45,7 @@
     }];
 }
 
-+ (void)share:(id)sharedItems atSource:(CGRect)origin {
++ (void)share:(id)sharedItems atSource:(CGRect)origin withResult: (FlutterResult) result {
     UIActivityViewController *activityViewController = [[UIActivityViewController alloc] initWithActivityItems:@[sharedItems] applicationActivities:nil];
     
     UIViewController *controller =[UIApplication sharedApplication].keyWindow.rootViewController;
@@ -56,6 +54,9 @@
     if (!CGRectIsEmpty(origin)) {
         activityViewController.popoverPresentationController.sourceRect = origin;
     }
+    [activityViewController setCompletionWithItemsHandler:^(UIActivityType  _Nullable activityType, BOOL completed, NSArray * _Nullable returnedItems, NSError * _Nullable activityError) {
+        result(@(completed));
+    }];
     [controller presentViewController:activityViewController animated:YES completion:nil];
 }
 

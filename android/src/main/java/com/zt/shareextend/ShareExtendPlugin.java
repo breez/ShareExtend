@@ -15,19 +15,22 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
+import static android.app.Activity.RESULT_CANCELED;
 
 /**
  * Plugin method host for presenting a share sheet via Intent
  */
-public class ShareExtendPlugin implements MethodChannel.MethodCallHandler, PluginRegistry.RequestPermissionsResultListener {
+public class ShareExtendPlugin implements MethodChannel.MethodCallHandler, PluginRegistry.RequestPermissionsResultListener, PluginRegistry.ActivityResultListener {
 
     /// the authorities for FileProvider
     private static final int CODE_ASK_PERMISSION = 100;
+    private static final int SHARE_EXTEND_INTENT_CODE = 101;
     private static final String CHANNEL = "share_extend";
 
     private final Registrar mRegistrar;
     private String text;
     private String type;
+    private MethodChannel.Result m_PendingResult;
 
     public static void registerWith(Registrar registrar) {
         MethodChannel channel = new MethodChannel(registrar.messenger(), CHANNEL);
@@ -39,6 +42,17 @@ public class ShareExtendPlugin implements MethodChannel.MethodCallHandler, Plugi
 
     private ShareExtendPlugin(Registrar registrar) {
         this.mRegistrar = registrar;
+        registrar.addActivityResultListener(this);
+    }
+
+    @Override
+    public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == SHARE_EXTEND_INTENT_CODE && m_PendingResult != null) {
+            m_PendingResult.success(resultCode != RESULT_CANCELED);
+            m_PendingResult = null;
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -49,7 +63,7 @@ public class ShareExtendPlugin implements MethodChannel.MethodCallHandler, Plugi
             }
             // Android does not support showing the share sheet at a particular point on screen.
             share((String) call.argument("text"), (String) call.argument("type"));
-            result.success(null);
+            m_PendingResult = result;
         } else {
             result.notImplemented();
         }
@@ -95,10 +109,11 @@ public class ShareExtendPlugin implements MethodChannel.MethodCallHandler, Plugi
 
         Intent chooserIntent = Intent.createChooser(shareIntent, null /* dialog title optional */);
         if (mRegistrar.activity() != null) {
-            mRegistrar.activity().startActivity(chooserIntent);
+            mRegistrar.activity().startActivityForResult(chooserIntent, SHARE_EXTEND_INTENT_CODE);
         } else {
             chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             mRegistrar.context().startActivity(chooserIntent);
+            m_PendingResult.success(true);
         }
     }
 
